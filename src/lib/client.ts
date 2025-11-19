@@ -1,4 +1,5 @@
 import { createBrowserClient } from '@supabase/ssr'
+import { Database } from '@/types/supabase'
 
 export function createClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -12,5 +13,5 @@ export function createClient() {
     )
   }
 
-  return createBrowserClient(url, key)
+  return createBrowserClient<Database>(url, key)
 }
