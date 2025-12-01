@@ -1,7 +1,7 @@
 'use client'
 
 import { OrganizationWithRole } from '@/types/organization'
-import { Building2, Users, Calendar, Shield, UserPlus } from 'lucide-react'
+import { Building2, Users, Calendar, Shield, UserPlus, Settings } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { JoinRequestsCard } from './join-requests-card'
 import { useRouter } from 'next/navigation'
@@ -141,18 +141,39 @@ export function OrganizationContent({ organization }: OrganizationContentProps) 
                   </div>
                 </button>
 
-                <button className="p-4 border-2 border-border rounded-lg hover:border-primary hover:bg-accent transition-all duration-200 text-left">
+                <button 
+                  onClick={() => router.push(`/organizations/${organization.id}/settings`)}
+                  className="p-4 border-2 border-border rounded-lg hover:border-primary hover:bg-accent transition-all duration-200 text-left"
+                >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                      <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                      <Settings className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                     </div>
                     <div>
                       <h4 className="font-medium text-foreground text-sm">Settings</h4>
-                      <p className="text-xs text-muted-foreground">Manage organization settings</p>
+                      <p className="text-xs text-muted-foreground">Calendar sync & preferences</p>
                     </div>
                   </div>
                 </button>
               </>
+            )}
+
+            {/* Settings for non-admin members */}
+            {organization.user_role !== 'Owner' && organization.user_role !== 'Admin' && (
+              <button 
+                onClick={() => router.push(`/organizations/${organization.id}/settings`)}
+                className="p-4 border-2 border-border rounded-lg hover:border-primary hover:bg-accent transition-all duration-200 text-left"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                    <Settings className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div>
+                    <h4 className="font-medium text-foreground text-sm">My Settings</h4>
+                    <p className="text-xs text-muted-foreground">Calendar sync & preferences</p>
+                  </div>
+                </div>
+              </button>
             )}
           </div>
         </CardContent>

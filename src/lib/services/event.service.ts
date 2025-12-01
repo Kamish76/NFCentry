@@ -7,6 +7,11 @@ import type {
   UpdateEventInput,
   EventFilters,
 } from '@/types/event'
+import {
+  syncEventToOrgMembers,
+  updateEventForOrgMembers,
+  deleteEventForOrgMembers,
+} from '@/lib/services/calendar-sync.service'
 
 export class EventService {
   /**
@@ -115,6 +120,12 @@ export class EventService {
       console.error('Error creating event:', error)
       return null
     }
+
+    // Sync to Google Calendar for all members who have enabled sync
+    // This runs asynchronously and doesn't block the response
+    syncEventToOrgMembers(data, input.organization_id).catch((err) => {
+      console.error('Calendar sync error (non-blocking):', err)
+    })
 
     return data
   }
@@ -405,6 +416,12 @@ export class EventService {
       return null
     }
 
+    // Sync updates to Google Calendar for all members who have enabled sync
+    // This runs asynchronously and doesn't block the response
+    updateEventForOrgMembers(data, data.organization_id).catch((err) => {
+      console.error('Calendar sync error (non-blocking):', err)
+    })
+
     return data
   }
 
@@ -431,6 +448,23 @@ export class EventService {
     if (permError || !canManage) {
       console.error('User does not have permission to delete this event:', permError)
       return false
+    }
+
+    // Get the event's organization_id before deleting (for calendar sync)
+    const { data: eventData } = await supabase
+      .from('events')
+      .select('organization_id')
+      .eq('id', eventId)
+      .single()
+
+    const organizationId = eventData?.organization_id
+
+    // Delete calendar events first (before the event is deleted from DB)
+    // This runs asynchronously but we don't wait for it
+    if (organizationId) {
+      deleteEventForOrgMembers(eventId, organizationId).catch((err) => {
+        console.error('Calendar delete error (non-blocking):', err)
+      })
     }
 
     const { error } = await supabase.from('events').delete().eq('id', eventId)
