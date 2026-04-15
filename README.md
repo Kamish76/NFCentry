@@ -114,6 +114,7 @@ src/
 Detailed documentation is available in the [`documents/`](./documents/) folder:
 
 - [Database Structure](./documents/CURRENT_DATABASE_STRUCTURE.sql)
+- [Web and Mobile Platform Strategy](./documents/WEB_MOBILE_PLATFORM_STRATEGY.md)
 - [User System](./documents/USER_DOCUMENTATION.md)
 - [Organizations](./documents/ORGANIZATION_DOCUMENTATION.md)
 - [Events](./documents/EVENT_DOCUMENTATION.md)
