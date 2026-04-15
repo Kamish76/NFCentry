@@ -1,26 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 import { EventService } from '@/lib/services/event.service'
 import { UserService } from '@/lib/services/user.service'
 import type { UpdateEventInput } from '@/types/event'
 
 // GET /api/event/[id] - Get a specific event by ID
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const GET = withAuth(
+  async (
+    { request, user },
+    { params }: { params: Promise<{ id: string }> }
+  ) => {
   try {
-    const supabase = await createClient()
-
-    // Get authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     // Verify user profile exists
     const userProfile = await UserService.getUserById(user.id)
 
@@ -56,24 +47,17 @@ export async function GET(
       { status: 500 }
     )
   }
-}
+  }
+)
 
 // PUT /api/event/[id] - Update an event
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const PUT = withAuth(
+  async (
+    { request, user },
+    { params }: { params: Promise<{ id: string }> }
+  ) => {
   try {
     const supabase = await createClient()
-
-    // Get authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Verify user profile exists
     const userProfile = await UserService.getUserById(user.id)
@@ -241,25 +225,16 @@ export async function PUT(
       { status: 500 }
     )
   }
-}
+  }
+)
 
 // DELETE /api/event/[id] - Delete an event
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const DELETE = withAuth(
+  async (
+    { user },
+    { params }: { params: Promise<{ id: string }> }
+  ) => {
   try {
-    const supabase = await createClient()
-
-    // Get authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     // Verify user profile exists
     const userProfile = await UserService.getUserById(user.id)
 
@@ -289,4 +264,5 @@ export async function DELETE(
       { status: 500 }
     )
   }
-}
+  }
+)

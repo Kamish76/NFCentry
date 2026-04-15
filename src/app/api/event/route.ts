@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 import { EventService } from '@/lib/services/event.service'
 import { UserService } from '@/lib/services/user.service'
 import type { CreateEventInput, EventFilters } from '@/types/event'
 
 // GET /api/event - Get all events for the current user
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async ({ request, user }) => {
   try {
     const supabase = await createClient()
-
-    // Get authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Get user profile to get user ID
     const userProfile = await UserService.getUserById(user.id)
@@ -87,21 +79,12 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
 // POST /api/event - Create a new event
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async ({ request, user }) => {
   try {
     const supabase = await createClient()
-
-    // Get authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Get user profile to get user ID
     const userProfile = await UserService.getUserById(user.id)
@@ -374,4 +357,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
