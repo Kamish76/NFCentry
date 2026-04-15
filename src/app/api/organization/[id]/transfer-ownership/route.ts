@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 import { OrganizationService } from '@/lib/services/organization.service'
 import { UserService } from '@/lib/services/user.service'
 import { requireOrgOwner, isAuthorized } from '@/lib/authorization'
@@ -9,22 +10,13 @@ import { requireOrgOwner, isAuthorized } from '@/lib/authorization'
  * Transfer ownership to another member
  * Requires: Owner role only
  */
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const POST = withAuth(
+  async (
+    { request, user },
+    { params }: { params: Promise<{ id: string }> }
+  ) => {
   try {
     const { id: organizationId } = await params
-    const supabase = await createClient()
-
-    // Get authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Verify user profile exists
     const userProfile = await UserService.getUserById(user.id)
@@ -96,4 +88,5 @@ export async function POST(
       { status: 500 }
     )
   }
-}
+  }
+)

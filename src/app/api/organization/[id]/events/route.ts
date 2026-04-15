@@ -1,25 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 import { EventService } from '@/lib/services/event.service'
 import { UserService } from '@/lib/services/user.service'
 import type { EventFilters } from '@/types/event'
 
 // GET /api/organization/[id]/events - Get all events for a specific organization
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const GET = withAuth(
+  async (
+    { request, user },
+    { params }: { params: Promise<{ id: string }> }
+  ) => {
   try {
     const supabase = await createClient()
-
-    // Get authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Verify user profile exists
     const userProfile = await UserService.getUserById(user.id)
@@ -65,4 +58,5 @@ export async function GET(
       { status: 500 }
     )
   }
-}
+  }
+)
