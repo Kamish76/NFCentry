@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useUserProfile } from '@/hooks/use-user-profile'
+import { useAuth } from '@/hooks/use-auth'
 import type { UserType } from '@/types/user'
 import type { OrganizationRole } from '@/types/organization'
 import { TagDisplayCard } from '@/components/user/tag-display-card'
@@ -29,7 +29,7 @@ interface UserMembership {
 
 export function ProfilePage() {
   const router = useRouter()
-  const { user, loading, error, refetch } = useUserProfile()
+  const { user, isLoading: loading, error, refreshProfile } = useAuth()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
@@ -56,7 +56,7 @@ export function ProfilePage() {
   const handleTagGenerated = (newTagId: string) => {
     setCurrentTagId(newTagId)
     // Refetch user to update the profile
-    refetch()
+    refreshProfile()
   }
 
   // Fetch user memberships
@@ -117,7 +117,7 @@ export function ProfilePage() {
       }
 
       // Refresh user data
-      await refetch()
+      await refreshProfile()
       setIsEditing(false)
     } catch (err) {
       setEditError(err instanceof Error ? err.message : 'An error occurred')

@@ -36,6 +36,7 @@ interface UseProfileStatusReturn {
   email: string | null
 }
 
+/** @deprecated Use useAuth instead. */
 export function useProfileStatus(): UseProfileStatusReturn {
   const [hasProfile, setHasProfile] = useState(false)
   const [loading, setLoading] = useState(true)
