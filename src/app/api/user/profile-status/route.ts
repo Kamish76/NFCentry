@@ -1,25 +1,13 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 import { UserService } from '@/lib/services/user.service'
 
 /**
  * GET /api/user/profile-status
  * Check if current authenticated user has a profile
  */
-export async function GET() {
+export const GET = withAuth(async ({ user: authUser }) => {
   try {
-    const supabase = await createClient()
-    
-    // Get authenticated user
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !authUser) {
-      return NextResponse.json(
-        { hasProfile: false, error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
     // Check if user has a profile
     const hasProfile = await UserService.hasProfile(authUser.id)
 
@@ -35,4 +23,4 @@ export async function GET() {
       { status: 500 }
     )
   }
-}
+})
