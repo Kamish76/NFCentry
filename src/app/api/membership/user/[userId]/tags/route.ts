@@ -1,26 +1,18 @@
 import { NextResponse } from 'next/server'
 import { MembershipService } from '@/lib/services/membership.service'
-import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 
 /**
  * GET /api/membership/user/[userId]/tags
  * Get user's membership tags (OrganizationName:Role format)
  */
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ userId: string }> }
-) {
+export const GET = withAuth(
+  async (
+    { user },
+    { params }: { params: Promise<{ userId: string }> }
+  ) => {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-  const { userId: targetUserId } = await params
+    const { userId: targetUserId } = await params
 
     // Users can only view their own tags
     if (targetUserId !== user.id) {
@@ -40,4 +32,5 @@ export async function GET(
       { status: 500 }
     )
   }
-}
+  }
+)
