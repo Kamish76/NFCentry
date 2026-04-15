@@ -1,25 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 import { UserService } from '@/lib/services/user.service'
 
 /**
  * GET /api/user/profile
  * Get current user's profile
  */
-export async function GET() {
+export const GET = withAuth(async ({ user: authUser }) => {
   try {
-    const supabase = await createClient()
-    
-    // Get authenticated user
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !authUser) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
     // Get user profile using auth user ID directly
     const user = await UserService.getUserById(authUser.id)
 
@@ -38,26 +26,14 @@ export async function GET() {
       { status: 500 }
     )
   }
-}
+})
 
 /**
  * PUT /api/user/profile
  * Update current user's profile
  */
-export async function PUT(request: NextRequest) {
+export const PUT = withAuth(async ({ request, user: authUser }) => {
   try {
-    const supabase = await createClient()
-    
-    // Get authenticated user
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !authUser) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
     // Get user profile using auth user ID directly
     const existingUser = await UserService.getUserById(authUser.id)
     
@@ -121,4 +97,4 @@ export async function PUT(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
