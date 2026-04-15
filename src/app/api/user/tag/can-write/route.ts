@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/server';
+import { withAuth } from '@/lib/api-auth-middleware';
 import { UserService } from '@/lib/services/user.service';
 
 /**
@@ -17,19 +17,8 @@ import { UserService } from '@/lib/services/user.service';
  *   days_remaining?: number;
  * }
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async ({ user }) => {
   try {
-    // Get authenticated user
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
     // Check if user can write a new tag
     const result = await UserService.canWriteTag(user.id);
 
@@ -60,4 +49,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+})

@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceRoleClient } from '@/lib/server'
 import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 import { UserService } from '@/lib/services/user.service'
 
 // POST /api/admin/cleanup-files - Clean up expired event files (admin/owner only)
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async ({ user }) => {
   try {
     // Use regular client for auth check
     const supabase = await createClient()
-
-    // Get authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Get user profile
     const userProfile = await UserService.getUserById(user.id)
@@ -95,21 +87,12 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
 
 // GET /api/admin/cleanup-files - Preview files eligible for cleanup (admin/owner only)
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async ({ user }) => {
   try {
     const supabase = await createClient()
-
-    // Get authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Get user profile
     const userProfile = await UserService.getUserById(user.id)
@@ -179,4 +162,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

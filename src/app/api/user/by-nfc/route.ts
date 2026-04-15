@@ -1,25 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 import { UserService } from '@/lib/services/user.service'
 
 /**
  * GET /api/user/by-nfc?tag=<nfc_tag_id>
  * Get user by NFC tag ID (for attendance scanning)
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async ({ request }) => {
   try {
-    const supabase = await createClient()
-    
-    // Verify authentication
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !authUser) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
     // Get NFC tag from query params
     const searchParams = request.nextUrl.searchParams
     const nfcTagId = searchParams.get('tag')
@@ -57,4 +45,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})
