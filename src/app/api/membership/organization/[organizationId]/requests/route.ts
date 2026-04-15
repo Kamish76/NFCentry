@@ -1,24 +1,19 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 
 /**
  * GET /api/membership/organization/[organizationId]/requests
  * Get all join requests for a specific organization
  * Only accessible by Owner and Admin of the organization
  */
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ organizationId: string }> }
-) {
+export const GET = withAuth(
+  async (
+    { user },
+    { params }: { params: Promise<{ organizationId: string }> }
+  ) => {
   try {
     const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     const { organizationId } = await params
 
@@ -69,4 +64,5 @@ export async function GET(
       { status: 500 }
     )
   }
-}
+  }
+)
