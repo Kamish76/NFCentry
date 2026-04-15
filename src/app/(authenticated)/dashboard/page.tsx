@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, Plus, Calendar, X, Sparkles, Clock, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { useUserProfile } from '@/hooks/use-user-profile'
+import { useAuth } from '@/hooks/use-auth'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { EventCard } from '@/components/events/event-card'
@@ -133,7 +133,7 @@ function useEventList(eventType: 'ongoing' | 'upcoming' | 'past') {
 
 export default function DashboardPage() {
   const router = useRouter()
-  const { user, loading: userLoading } = useUserProfile()
+  const { user, isLoading: userLoading } = useAuth()
   
   // Use infinite scroll hooks for each event type
   const ongoingList = useEventList('ongoing')

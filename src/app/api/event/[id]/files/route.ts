@@ -1,24 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 import { UserService } from '@/lib/services/user.service'
 
 // GET /api/event/[id]/files - Get files for an event
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const GET = withAuth(
+  async (
+    { user },
+    { params }: { params: Promise<{ id: string }> }
+  ) => {
   try {
     const { id: eventId } = await params
     const supabase = await createClient()
-
-    // Get authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Get user profile
     const userProfile = await UserService.getUserById(user.id)
@@ -54,7 +47,8 @@ export async function GET(
       { status: 500 }
     )
   }
-}
+  }
+)
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024 // 20MB in bytes
 const MAX_FILES_PER_EVENT = 10
@@ -67,22 +61,14 @@ const ALLOWED_MIME_TYPES = [
 ]
 
 // POST /api/event/[id]/files - Add files to an event
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const POST = withAuth(
+  async (
+    { request, user },
+    { params }: { params: Promise<{ id: string }> }
+  ) => {
   try {
     const { id: eventId } = await params
     const supabase = await createClient()
-
-    // Get authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Get user profile
     const userProfile = await UserService.getUserById(user.id)
@@ -263,25 +249,18 @@ export async function POST(
       { status: 500 }
     )
   }
-}
+  }
+)
 
 // DELETE /api/event/[id]/files - Delete specific files from an event
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const DELETE = withAuth(
+  async (
+    { request, user },
+    { params }: { params: Promise<{ id: string }> }
+  ) => {
   try {
     const { id: eventId } = await params
     const supabase = await createClient()
-
-    // Get authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Get user profile
     const userProfile = await UserService.getUserById(user.id)
@@ -396,4 +375,5 @@ export async function DELETE(
       { status: 500 }
     )
   }
-}
+  }
+)

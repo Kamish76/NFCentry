@@ -1,23 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 
 /**
  * POST /api/membership/approve
  * Approve a join request
  * Requires: Owner or Admin role of the organization
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async ({ request, user }) => {
   try {
     const supabase = await createClient()
-
-    // Get authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Parse request body
     const body = await request.json()
@@ -63,4 +55,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

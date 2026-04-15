@@ -1,23 +1,14 @@
 import { NextResponse } from 'next/server'
 import { MembershipService } from '@/lib/services/membership.service'
-import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 
 /**
  * POST /api/membership/transfer-ownership
  * Transfer organization ownership to another member
  * Body: { organization_id, new_owner_id }
  */
-export async function POST(request: Request) {
+export const POST = withAuth(async ({ request, user }) => {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     const body = await request.json()
     const { organization_id, new_owner_id } = body
 
@@ -81,4 +72,4 @@ export async function POST(request: Request) {
       { status: 500 }
     )
   }
-}
+})

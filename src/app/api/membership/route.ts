@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { MembershipService } from '@/lib/services/membership.service'
 import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 import type { CreateMembershipInput, MembershipFilters } from '@/types/membership'
 
 /**
@@ -8,16 +9,9 @@ import type { CreateMembershipInput, MembershipFilters } from '@/types/membershi
  * Get memberships with optional filters
  * Query params: user_id, organization_id, role
  */
-export async function GET(request: Request) {
+export const GET = withAuth(async ({ request, user }) => {
   try {
     const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     const { searchParams } = new URL(request.url)
     const filters: MembershipFilters = {}
@@ -58,24 +52,15 @@ export async function GET(request: Request) {
       { status: 500 }
     )
   }
-}
+})
 
 /**
  * POST /api/membership
  * Create a new membership (add user to organization)
  * Body: { user_id, organization_id, role }
  */
-export async function POST(request: Request) {
+export const POST = withAuth(async ({ request, user }) => {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     const body = await request.json()
     const { user_id, organization_id, role } = body as CreateMembershipInput
 
@@ -129,4 +114,4 @@ export async function POST(request: Request) {
       { status: 500 }
     )
   }
-}
+})

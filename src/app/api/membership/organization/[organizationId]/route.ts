@@ -1,25 +1,18 @@
 import { NextResponse } from 'next/server'
 import { MembershipService } from '@/lib/services/membership.service'
-import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 import type { MembershipRole } from '@/types/membership'
 
 /**
  * GET /api/membership/organization/[organizationId]
  * Get all members of a specific organization
  */
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ organizationId: string }> }
-) {
+export const GET = withAuth(
+  async (
+    { request, user },
+    { params }: { params: Promise<{ organizationId: string }> }
+  ) => {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
     const { searchParams } = new URL(request.url)
     const limitParam = searchParams.get('limit')
     const offsetParam = searchParams.get('offset')
@@ -66,4 +59,5 @@ export async function GET(
       { status: 500 }
     )
   }
-}
+  }
+)

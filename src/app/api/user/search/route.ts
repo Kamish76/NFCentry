@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/server'
 import { NextResponse } from 'next/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 
 /**
  * GET /api/user/search
@@ -9,19 +10,13 @@ import { NextResponse } from 'next/server'
  * - limit: Max results to return (default 10, max 50)
  * - exclude_org_members: Organization ID to exclude existing members (optional)
  */
-export async function GET(request: Request) {
+export const GET = withAuth(async ({ request }) => {
   const supabase = await createClient()
   const { searchParams } = new URL(request.url)
   
   const query = searchParams.get('q')
   const limit = Math.min(parseInt(searchParams.get('limit') || '10'), 50)
   const excludeOrgMembers = searchParams.get('exclude_org_members')
-
-  // Validate authenticated user
-  const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-  if (authError || !authUser) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
 
   // Validate search query
   if (!query || query.trim().length < 2) {
@@ -86,4 +81,4 @@ export async function GET(request: Request) {
       { status: 500 }
     )
   }
-}
+})

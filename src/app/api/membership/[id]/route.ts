@@ -1,27 +1,19 @@
 import { NextResponse } from 'next/server'
 import { MembershipService } from '@/lib/services/membership.service'
-import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 import type { UpdateMembershipInput } from '@/types/membership'
 
 /**
  * GET /api/membership/[id]
  * Get a specific membership by ID
  */
-export async function GET(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const GET = withAuth(
+  async (
+    { user },
+    { params }: { params: Promise<{ id: string }> }
+  ) => {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-  const { id: membershipId } = await params
+    const { id: membershipId } = await params
 
     const membership = await MembershipService.getMembershipWithDetails(
       membershipId
@@ -55,28 +47,21 @@ export async function GET(
       { status: 500 }
     )
   }
-}
+  }
+)
 
 /**
  * PATCH /api/membership/[id]
  * Update a membership (change role)
  * Body: { role }
  */
-export async function PATCH(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const PATCH = withAuth(
+  async (
+    { request, user },
+    { params }: { params: Promise<{ id: string }> }
+  ) => {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-  const { id: membershipId } = await params
+    const { id: membershipId } = await params
     const body = await request.json()
     const { role } = body as UpdateMembershipInput
 
@@ -141,27 +126,20 @@ export async function PATCH(
       { status: 500 }
     )
   }
-}
+  }
+)
 
 /**
  * DELETE /api/membership/[id]
  * Remove a member from an organization
  */
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const DELETE = withAuth(
+  async (
+    { user },
+    { params }: { params: Promise<{ id: string }> }
+  ) => {
   try {
-    const supabase = await createClient()
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
-  const { id: membershipId } = await params
+    const { id: membershipId } = await params
 
     // Get the membership to check organization and role
     const membership = await MembershipService.getMembershipById(membershipId)
@@ -216,4 +194,5 @@ export async function DELETE(
       { status: 500 }
     )
   }
-}
+  }
+)

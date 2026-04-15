@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 import { UserService } from '@/lib/services/user.service'
 import type { UserType } from '@/types/user'
 
@@ -7,20 +7,8 @@ import type { UserType } from '@/types/user'
  * POST /api/user/complete-profile
  * Create user profile for authenticated user
  */
-export async function POST(request: NextRequest) {
+export const POST = withAuth(async ({ request, user: authUser }) => {
   try {
-    const supabase = await createClient()
-    
-    // Get authenticated user
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !authUser) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
     // Check if profile already exists
     const existingUser = await UserService.getUserById(authUser.id)
     if (existingUser) {
@@ -90,4 +78,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

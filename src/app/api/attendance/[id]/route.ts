@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/server';
+import { withAuth } from '@/lib/api-auth-middleware';
 import { AttendanceService } from '@/lib/services/attendance.service';
 
 /**
@@ -8,22 +8,12 @@ import { AttendanceService } from '@/lib/services/attendance.service';
  * 
  * Authentication: Required (Admin or Owner role)
  */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const DELETE = withAuth(
+  async (
+    { user },
+    { params }: { params: Promise<{ id: string }> }
+  ) => {
   try {
-    // Get authenticated user
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
     const { id: attendanceId } = await params;
 
     // Delete attendance (RLS will enforce permission check)
@@ -49,7 +39,8 @@ export async function DELETE(
       { status: 500 }
     );
   }
-}
+  }
+)
 
 /**
  * PATCH /api/attendance/[id]
@@ -65,22 +56,12 @@ export async function DELETE(
  *   notes?: string;
  * }
  */
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const PATCH = withAuth(
+  async (
+    { request, user },
+    { params }: { params: Promise<{ id: string }> }
+  ) => {
   try {
-    // Get authenticated user
-    const supabase = await createClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
     const { id: attendanceId } = await params;
 
     // Parse request body
@@ -117,4 +98,5 @@ export async function PATCH(
       { status: 500 }
     );
   }
-}
+  }
+)
