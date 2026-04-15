@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 import { UserService } from '@/lib/services/user.service'
 
 /**
@@ -7,20 +7,8 @@ import { UserService } from '@/lib/services/user.service'
  * Mark that the current user has set a password
  * Used when OAuth users set their first password
  */
-export async function POST() {
+export const POST = withAuth(async ({ user: authUser }) => {
   try {
-    const supabase = await createClient()
-    
-    // Get authenticated user
-    const { data: { user: authUser }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !authUser) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
-
     // Mark password as set
     const { success, error } = await UserService.markPasswordSet(authUser.id)
 
@@ -39,4 +27,4 @@ export async function POST() {
       { status: 500 }
     )
   }
-}
+})
