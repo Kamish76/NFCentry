@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 import { OrganizationService } from '@/lib/services/organization.service'
 import { UserService } from '@/lib/services/user.service'
 import { requireOrgPermission, requireOrgOwner, isAuthorized } from '@/lib/authorization'
@@ -8,22 +8,13 @@ import { requireOrgPermission, requireOrgOwner, isAuthorized } from '@/lib/autho
  * GET /api/organization/[id]/members/[userId]
  * Get specific member details
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string; userId: string }> }
-) {
+export const GET = withAuth(
+  async (
+    { user },
+    { params }: { params: Promise<{ id: string; userId: string }> }
+  ) => {
   try {
     const { id: organizationId, userId: targetUserId } = await params
-    const supabase = await createClient()
-
-    // Get authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Verify user profile exists
     const userProfile = await UserService.getUserById(user.id)
@@ -64,29 +55,21 @@ export async function GET(
       { status: 500 }
     )
   }
-}
+  }
+)
 
 /**
  * PATCH /api/organization/[id]/members/[userId]
  * Update member role
  * Requires: Owner or Admin role
  */
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string; userId: string }> }
-) {
+export const PATCH = withAuth(
+  async (
+    { request, user },
+    { params }: { params: Promise<{ id: string; userId: string }> }
+  ) => {
   try {
     const { id: organizationId, userId: targetUserId } = await params
-    const supabase = await createClient()
-
-    // Get authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Verify user profile exists
     const userProfile = await UserService.getUserById(user.id)
@@ -184,29 +167,21 @@ export async function PATCH(
       { status: 500 }
     )
   }
-}
+  }
+)
 
 /**
  * DELETE /api/organization/[id]/members/[userId]
  * Remove member from organization
  * Requires: Owner or Admin role
  */
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string; userId: string }> }
-) {
+export const DELETE = withAuth(
+  async (
+    { user },
+    { params }: { params: Promise<{ id: string; userId: string }> }
+  ) => {
   try {
     const { id: organizationId, userId: targetUserId } = await params
-    const supabase = await createClient()
-
-    // Get authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Verify user profile exists
     const userProfile = await UserService.getUserById(user.id)
@@ -268,4 +243,5 @@ export async function DELETE(
       { status: 500 }
     )
   }
-}
+  }
+)

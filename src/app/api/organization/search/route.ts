@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 import { UserService } from '@/lib/services/user.service'
 
 /**
@@ -17,18 +18,9 @@ import { UserService } from '@/lib/services/user.service'
  * - max_members: Maximum member count filter
  * - exclude_joined: Exclude organizations user is already a member of (default: false)
  */
-export async function GET(request: NextRequest) {
+export const GET = withAuth(async ({ request, user }) => {
   try {
     const supabase = await createClient()
-
-    // Get authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Verify user profile exists
     const userProfile = await UserService.getUserById(user.id)
@@ -184,4 +176,4 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     )
   }
-}
+})

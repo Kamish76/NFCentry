@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 import { requireOrgPermission, isAuthorized } from '@/lib/authorization'
 
 /**
@@ -7,22 +8,14 @@ import { requireOrgPermission, isAuthorized } from '@/lib/authorization'
  * Get pending join requests for an organization
  * Requires: Owner or Admin role
  */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const GET = withAuth(
+  async (
+    { user },
+    { params }: { params: Promise<{ id: string }> }
+  ) => {
   try {
     const { id: organizationId } = await params
     const supabase = await createClient()
-
-    // Get authenticated user
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
 
     // Check if user is owner or admin of the organization
     const authResult = await requireOrgPermission(
@@ -92,4 +85,5 @@ export async function GET(
       { status: 500 }
     )
   }
-}
+  }
+)
