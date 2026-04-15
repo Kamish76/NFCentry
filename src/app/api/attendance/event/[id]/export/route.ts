@@ -1,25 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/server'
+import { withAuth } from '@/lib/api-auth-middleware'
 import { generateAttendanceExcel, generateExportFilename } from '@/lib/services/attendance-export.service'
 import type { AttendanceWithUser } from '@/types/attendance'
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export const GET = withAuth(
+  async (
+    { user },
+    { params }: { params: Promise<{ id: string }> }
+  ) => {
   try {
     const supabase = await createClient()
     const { id: eventId } = await params
-
-    // Get current user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      )
-    }
 
     // Get event details with organization
     const { data: event, error: eventError } = await supabase
@@ -135,4 +127,5 @@ export async function GET(
       { status: 500 }
     )
   }
-}
+  }
+)
