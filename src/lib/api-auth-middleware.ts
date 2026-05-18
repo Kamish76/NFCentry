@@ -19,12 +19,30 @@ export function withAuth<TParams = unknown>(
   return async (request: NextRequest, params: TParams): Promise<Response> => {
     try {
       const supabase = await createClient()
+      const authHeader = request.headers.get('authorization')
+      const bearerToken = authHeader?.startsWith('Bearer ')
+        ? authHeader.slice('Bearer '.length).trim()
+        : null
+
+      console.log('[api-auth] request', {
+        path: request.nextUrl.pathname,
+        hasAuthHeader: Boolean(authHeader),
+        hasBearerToken: Boolean(bearerToken),
+      })
+
       const {
         data: { user },
         error: authError,
-      } = await supabase.auth.getUser()
+      } = bearerToken
+        ? await supabase.auth.getUser(bearerToken)
+        : await supabase.auth.getUser()
 
       if (authError || !user) {
+        console.warn('[api-auth] unauthorized', {
+          path: request.nextUrl.pathname,
+          hasBearerToken: Boolean(bearerToken),
+          error: authError?.message || 'No user',
+        })
         return NextResponse.json(
           {
             error: 'Unauthorized',

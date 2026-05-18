@@ -1,14 +1,12 @@
 import { createServerClient } from '@supabase/ssr'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 
 /**
  * If using Fluid compute: Don't put this client in a global variable. Always create a new client within each
  * function when using it.
  */
 export async function createClient() {
-  const cookieStore = await cookies()
-
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
   const key =
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY ||
@@ -19,6 +17,28 @@ export async function createClient() {
       'Supabase env missing: set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_OR_ANON_KEY (or NEXT_PUBLIC_SUPABASE_ANON_KEY).'
     )
   }
+
+  const headerStore = await headers()
+  const authHeader = headerStore.get('authorization')
+  const bearerToken = authHeader?.startsWith('Bearer ')
+    ? authHeader.slice('Bearer '.length).trim()
+    : null
+
+  if (bearerToken) {
+    return createSupabaseClient(url, key, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+      global: {
+        headers: {
+          Authorization: `Bearer ${bearerToken}`,
+        },
+      },
+    })
+  }
+
+  const cookieStore = await cookies()
 
   return createServerClient(url, key, {
     cookies: {
