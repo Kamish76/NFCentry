@@ -1236,7 +1236,7 @@ const TAG_ID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 
 - [Attendance Documentation](./ATTENDANCE_DOCUMENTATION.md)
 - [User Documentation](./USER_DOCUMENTATION.md)
-- [Database Structure](./CURRENT_DATABASE_STRUCTURE.sql)
+- [Database Archive](../schema_archive.sql)
 
 ---
 

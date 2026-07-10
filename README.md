@@ -2,6 +2,10 @@
 
 An automated attendance tracking system using NFC technology and QR codes for seamless event check-ins.
 
+## Project Status
+
+This repository is currently paused. The database recovery path for any future revival is the full schema dump in [`schema_archive.sql`](./schema_archive.sql), which was captured directly from Supabase and should be pasted into a fresh Supabase SQL editor setup.
+
 ![Next.js](https://img.shields.io/badge/Next.js-15.5.7-black)
 ![React](https://img.shields.io/badge/React-19-blue)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
@@ -63,17 +67,13 @@ Create `.env.local` with your Supabase credentials:
 
 Get these from: Supabase Dashboard → Settings → API
 
-### Database Setup
+### Database Recovery
 
-Run the SQL migrations in Supabase SQL Editor:
+If you ever revive this project, restore the database by pasting the full contents of [`schema_archive.sql`](./schema_archive.sql) into the Supabase SQL Editor.
 
-```sql
--- Complete database structure
-documents/CURRENT_DATABASE_STRUCTURE.sql
+That archive is the canonical database snapshot for this repository. It represents the complete schema and Supabase-specific configuration captured from the live project.
 
--- Enable real-time for attendance (optional)
-documents/migrations/enable_attendance_realtime.sql
-```
+After the schema is restored, confirm your `.env.local` values and then run the app locally.
 
 ### Development
 
@@ -113,7 +113,7 @@ src/
 
 Detailed documentation is available in the [`documents/`](./documents/) folder:
 
-- [Database Structure](./documents/CURRENT_DATABASE_STRUCTURE.sql)
+- [Database Archive](./schema_archive.sql)
 - [Web and Mobile Platform Strategy](./documents/WEB_MOBILE_PLATFORM_STRATEGY.md)
 - [User System](./documents/USER_DOCUMENTATION.md)
 - [Organizations](./documents/ORGANIZATION_DOCUMENTATION.md)

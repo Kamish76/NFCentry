@@ -492,7 +492,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE event_attendance;
 ALTER TABLE event_attendance REPLICA IDENTITY FULL;
 ```
 
-**Migration file:** `documents/migrations/enable_attendance_realtime.sql`
+**Canonical schema reference:** [`schema_archive.sql`](../schema_archive.sql) (includes the `event_attendance` table, `REPLICA IDENTITY FULL`, and the `supabase_realtime` publication entry)
 
 ### Connection Status Types
 

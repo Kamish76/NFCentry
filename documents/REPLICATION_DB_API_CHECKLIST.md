@@ -1,11 +1,16 @@
 # NFC Attendance System - Database + API Replication Checklist
 
-This document pulls together the current database requirements and all API routes so you can replicate the project one step at a time.
+This document pulls together the restore order for the paused project so you can revive it from the archived database snapshot and then bring the API back online one step at a time.
 
 ## 1) Database replication order (one by one)
 
-### Step 1: Core base tables
-Create these first (in this order):
+### Step 1: Restore the archived schema
+Paste the full contents of [`schema_archive.sql`](../schema_archive.sql) into the Supabase SQL Editor.
+
+This archive is the source of truth for the database state captured from the live project.
+
+### Step 2: Core base tables
+The archive includes these core tables in the correct order:
 1. `users`
 2. `organizations`
 3. `organization_members`
@@ -13,10 +18,10 @@ Create these first (in this order):
 5. `events`
 6. `event_attendance`
 
-Reference snapshot: `documents/CURRENT_DATABASE_STRUCTURE.sql`
+Reference snapshot: `../schema_archive.sql`
 
-### Step 2: Additional tables used by code/docs
-These are required by API/features but are not listed in `CURRENT_DATABASE_STRUCTURE.sql` table overview:
+### Step 3: Additional tables used by code/docs
+These are part of the archived schema and are called out separately because the API/docs depend on them directly:
 1. `event_files` (used by event file upload APIs)
 2. `user_tag_writes` (tag cooldown/history)
 3. `user_tag_pending` (two-phase tag write flow)
@@ -25,7 +30,7 @@ Reference details:
 - `documents/FILE_UPLOAD_DOCUMENTATION.md`
 - `documents/TAG_MANAGEMENT_DOCUMENTATION.md`
 
-### Step 3: Required helper/database functions
+### Step 4: Required helper/database functions
 Create function layer before enabling all APIs:
 - `is_org_member(org_id uuid, user_auth_id uuid)`
 - `is_org_admin(org_id uuid, user_auth_id uuid)`
@@ -38,7 +43,7 @@ Create function layer before enabling all APIs:
 - `get_tag_write_history(p_user_id uuid, p_limit int)`
 - `generate_and_assign_tag(p_user_id uuid)` (legacy path still referenced)
 
-### Step 4: RLS policies
+### Step 5: RLS policies
 Enable RLS and apply policies for:
 - `users`
 - `organizations`
@@ -51,10 +56,10 @@ Enable RLS and apply policies for:
 
 Important required membership policies are listed in:
 - `documents/MEMBERSHIP_DOCUMENTATION.md`
-- top section of `documents/CURRENT_DATABASE_STRUCTURE.sql`
+- the archived schema in `../schema_archive.sql`
 
-### Step 5: Realtime + storage
-- Add `event_attendance` to Supabase realtime publication (for live attendance updates)
+### Step 6: Realtime + storage
+- `schema_archive.sql` already captures the `event_attendance` realtime publication entry and replica identity configuration.
 - Create storage buckets:
   - `organization-files` (organization logos)
   - `event-files` (event attachments/featured images)
@@ -152,6 +157,6 @@ Main feature docs:
 
 ## 4) Notes before cloning into a new project
 
-1. `CURRENT_DATABASE_STRUCTURE.sql` appears to be missing newer feature tables (`event_files`, `user_tag_writes`, `user_tag_pending`) used in API and documentation.
+1. `schema_archive.sql` is the source of truth for the full database snapshot; do not rebuild the schema from the older structure summary.
 2. Replicate DB functions and RLS policies together with tables; API behavior depends on both.
 3. Confirm Supabase storage buckets and policy setup before testing file/tag endpoints.
