@@ -12,10 +12,10 @@
     "semantic_hash": "9b77af189a21a7a64e4bd7a426f64176"
   },
   "package.json": {
-    "mtime": 1792411400.8397596,
-    "seen": 1792411516.0353868,
-    "ast_hash": "9405d1463e47975a0ec96bee3d3dc0bb",
-    "semantic_hash": "9405d1463e47975a0ec96bee3d3dc0bb"
+    "mtime": 1792422041.06706,
+    "seen": 1792423247.335406,
+    "ast_hash": "20f5460be026533db50f5acfe10cc6df",
+    "semantic_hash": "20f5460be026533db50f5acfe10cc6df"
   },
   "postcss.config.mjs": {
     "mtime": 1792408652.7400272,
@@ -1024,5 +1024,17 @@
     "seen": 1792412731.757662,
     "ast_hash": "ca32e5502e8966cf90553cb1ac849762",
     "semantic_hash": "ca32e5502e8966cf90553cb1ac849762"
+  },
+  "scripts/migrate.js": {
+    "mtime": 1792421629.4776952,
+    "seen": 1792423247.335458,
+    "ast_hash": "fcaa7a8c5ed268044ec5c42d0569d7c4",
+    "semantic_hash": "fcaa7a8c5ed268044ec5c42d0569d7c4"
+  },
+  "scripts/test-db-functions.js": {
+    "mtime": 1792422006.5633616,
+    "seen": 1792423247.3354602,
+    "ast_hash": "302c843fc83113ba316fe2e9ca71e156",
+    "semantic_hash": "302c843fc83113ba316fe2e9ca71e156"
   }
 }
