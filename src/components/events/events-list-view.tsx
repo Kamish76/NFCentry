@@ -1,0 +1,364 @@
+'use client'
+
+import { useState, useEffect, useRef, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { Card, CardContent } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import {
+  Calendar,
+  MapPin,
+  User,
+  Plus,
+  ArrowLeft,
+  Clock,
+  FileText,
+  Timer,
+  Loader2,
+} from 'lucide-react'
+import { MembershipRole } from '@/types/membership'
+import { getEventStatus, formatEventDate, formatEventTime } from '@/lib/utils'
+
+interface Event {
+  id: string
+  event_name: string
+  date: string
+  event_start?: string | null
+  event_end?: string | null
+  location: string | null
+  description: string | null
+  created_by: string
+  created_at: string
+  users: {
+    name: string
+    email: string
+  }
+}
+
+interface EventsListViewProps {
+  organizationId: string
+  organizationName: string
+  userRole: MembershipRole
+  events: Event[] // Initial events from server
+}
+
+const PAGE_SIZE = 10
+
+export function EventsListView({
+  organizationId,
+  organizationName,
+  userRole,
+  events: initialEvents,
+}: EventsListViewProps) {
+  const router = useRouter()
+  const [filter, setFilter] = useState<'all' | 'ongoing' | 'upcoming' | 'past'>('all')
+  const [events, setEvents] = useState<Event[]>(initialEvents.slice(0, PAGE_SIZE))
+  const [total, setTotal] = useState(initialEvents.length)
+  const [offset, setOffset] = useState(Math.min(initialEvents.length, PAGE_SIZE))
+  const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const loadMoreRef = useRef<HTMLDivElement>(null)
+  const isInitialMount = useRef(true)
+
+  const hasMore = events.length < total
+  const canCreateEvents = ['Owner', 'Admin', 'Attendance Taker'].includes(userRole)
+
+  // Filter events client-side for display
+  const filteredEvents = events.filter((event) => {
+    if (filter === 'all') return true
+    const status = getEventStatus(event)
+    return status === filter
+  })
+
+  // Fetch events from API
+  const fetchEvents = useCallback(async (reset: boolean = false, filterType: string = filter) => {
+    try {
+      const effectiveOffset = reset ? 0 : offset
+      let url = `/api/event?organization_id=${organizationId}&limit=${PAGE_SIZE}&offset=${effectiveOffset}`
+      
+      // Map filter to API parameters
+      if (filterType === 'ongoing') {
+        url = `/api/event?organization_id=${organizationId}&ongoing=true&limit=${PAGE_SIZE}&offset=${effectiveOffset}`
+      } else if (filterType === 'upcoming') {
+        url = `/api/event?organization_id=${organizationId}&upcoming=true&limit=${PAGE_SIZE}&offset=${effectiveOffset}`
+      } else if (filterType === 'past') {
+        url = `/api/event?organization_id=${organizationId}&past=true&limit=${PAGE_SIZE}&offset=${effectiveOffset}`
+      }
+      
+      const res = await fetch(url, { cache: 'no-store' })
+      if (!res.ok) throw new Error('Failed to load events')
+      
+      const data = await res.json()
+      
+      // The API returns events with organization info, we need to transform if needed
+      const newEvents: Event[] = (data.events || []).map((e: any) => ({
+        ...e,
+        users: e.users || { name: 'Unknown', email: '' }
+      }))
+      
+      if (reset) {
+        setEvents(newEvents)
+        setOffset(newEvents.length)
+      } else {
+        setEvents(prev => [...prev, ...newEvents])
+        setOffset(prev => prev + newEvents.length)
+      }
+      
+      setTotal(data.pagination?.total || 0)
+    } catch (err) {
+      console.error('Error fetching events:', err)
+    }
+  }, [organizationId, offset, filter])
+
+  // Refetch when filter changes
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false
+      return
+    }
+    
+    setIsLoading(true)
+    fetchEvents(true, filter).finally(() => setIsLoading(false))
+  }, [filter, fetchEvents])
+
+  // Infinite scroll observer
+  useEffect(() => {
+    const element = loadMoreRef.current
+    if (!element) return
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !isLoading && !isLoadingMore && hasMore) {
+          setIsLoadingMore(true)
+          fetchEvents(false).finally(() => setIsLoadingMore(false))
+        }
+      },
+      { rootMargin: '200px' }
+    )
+
+    observer.observe(element)
+    return () => observer.unobserve(element)
+  }, [hasMore, isLoading, isLoadingMore, fetchEvents])
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => router.push(`/organizations`)}
+            className="h-10 w-10"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Events</h1>
+            <p className="text-sm text-muted-foreground">{organizationName}</p>
+          </div>
+        </div>
+
+        {canCreateEvents && (
+          <Button
+            onClick={() => router.push(`/organizations/${organizationId}/events/create`)}
+            className="bg-primary hover:bg-primary/90 text-primary-foreground"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Create Event
+          </Button>
+        )}
+      </div>
+
+      {/* Filters - Inline tab style */}
+      <div className="inline-flex items-center gap-1 p-1 bg-muted rounded-lg">
+        <button
+          onClick={() => setFilter('all')}
+          className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+            filter === 'all'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          All
+        </button>
+        <button
+          onClick={() => setFilter('ongoing')}
+          className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+            filter === 'ongoing'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Ongoing
+        </button>
+        <button
+          onClick={() => setFilter('upcoming')}
+          className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+            filter === 'upcoming'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Upcoming
+        </button>
+        <button
+          onClick={() => setFilter('past')}
+          className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+            filter === 'past'
+              ? 'bg-background text-foreground shadow-sm'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Past
+        </button>
+      </div>
+
+      {/* Loading State */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : filteredEvents.length === 0 ? (
+        /* Events List */
+        <Card className="bg-card shadow-md">
+          <CardContent className="py-12">
+            <div className="text-center">
+              <Calendar className="mx-auto h-12 w-12 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">
+                No events found
+              </h3>
+              <p className="text-muted-foreground mb-6">
+                {filter === 'ongoing'
+                  ? 'No events currently happening.'
+                  : filter === 'upcoming'
+                  ? 'No upcoming events scheduled.'
+                  : filter === 'past'
+                  ? 'No past events.'
+                  : 'No events have been created yet.'}
+              </p>
+              {canCreateEvents && filter === 'all' && (
+                <Button
+                  onClick={() =>
+                    router.push(`/organizations/${organizationId}/events/create`)
+                  }
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create First Event
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-4">
+          {filteredEvents.map((event) => {
+            const eventStatus = getEventStatus(event)
+            const hasAttendanceWindow = event.event_start && event.event_end
+            
+            return (
+            <Card
+              key={event.id}
+              className={`bg-card shadow-md hover:shadow-lg transition-shadow cursor-pointer ${
+                eventStatus === 'ongoing' ? 'border-l-4 border-l-green-500' : eventStatus === 'upcoming' ? 'border-l-4 border-l-primary' : ''
+              }`}
+              onClick={() => router.push(`/organizations/${organizationId}/events/${event.id}`)}
+            >
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between gap-4">
+                  {/* Event Info */}
+                  <div className="flex-1 space-y-3">
+                    {/* Event Name & Status Badge */}
+                    <div className="flex items-center gap-3">
+                      <h3 className="text-lg font-semibold text-foreground">
+                        {event.event_name}
+                      </h3>
+                      {eventStatus === 'ongoing' && (
+                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                          Currently Happening
+                        </span>
+                      )}
+                      {eventStatus === 'upcoming' && (
+                        <span className="px-2 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-full">
+                          Upcoming
+                        </span>
+                      )}
+                      {eventStatus === 'past' && (
+                        <span className="px-2 py-1 bg-muted text-muted-foreground text-xs font-semibold rounded-full">
+                          Past
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Date and Time */}
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-4 w-4 text-primary" />
+                        <span>{formatEventDate(event.date)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-primary" />
+                        <span>{formatEventTime(event.date)}</span>
+                      </div>
+                    </div>
+
+                    {/* Attendance Window */}
+                    {hasAttendanceWindow && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground bg-accent/50 p-2 rounded-md">
+                        <Timer className="h-4 w-4 text-primary" />
+                        <span>
+                          Attendance: {formatEventTime(event.event_start!)} - {formatEventTime(event.event_end!)}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Location */}
+                    {event.location && (
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <MapPin className="h-4 w-4 text-primary" />
+                        <span>{event.location}</span>
+                      </div>
+                    )}
+
+                    {/* Description Preview */}
+                    {event.description && (
+                      <div className="flex items-start gap-2 text-sm text-muted-foreground">
+                        <FileText className="h-4 w-4 text-primary mt-0.5" />
+                        <p className="line-clamp-2">{event.description}</p>
+                      </div>
+                    )}
+
+                    {/* Creator */}
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2 border-t border-border">
+                      <User className="h-3 w-3" />
+                      <span>Created by {event.users?.name || 'Unknown'}</span>
+                    </div>
+                  </div>
+
+                  {/* Date Badge */}
+                  <div className="flex flex-col items-center justify-center bg-primary/10 rounded-lg p-3 min-w-[70px]">
+                    <span className="text-2xl font-bold text-primary">
+                      {new Date(event.date).getDate()}
+                    </span>
+                    <span className="text-xs font-medium text-primary uppercase">
+                      {new Date(event.date).toLocaleDateString('en-US', { month: 'short' })}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )
+          })}
+          
+          {/* Load more sentinel */}
+          <div ref={loadMoreRef} />
+          {isLoadingMore && (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
