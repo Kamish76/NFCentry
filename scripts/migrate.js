@@ -7,7 +7,8 @@ try {
   require('dotenv').config({ path: path.resolve(process.cwd(), '.env.local') });
 } catch (e) {}
 
-const connectionString = process.env.DATABASE_URL;
+// Migrations need a direct (unpooled) connection; Neon-Vercel integration provides it.
+const connectionString = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL;
 
 if (!connectionString) {
   console.error('Error: DATABASE_URL is not set in environment or .env.local');
