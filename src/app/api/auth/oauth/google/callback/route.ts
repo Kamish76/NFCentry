@@ -1,10 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { query } from '@/lib/db'
 import { createSessionToken, SESSION_COOKIE_NAME, SESSION_MAX_AGE_SECONDS } from '@/lib/auth/session'
-import { sanitizeNext, OAUTH_STATE_COOKIE_NAME } from '@/lib/auth/oauth'
+import {
+  sanitizeNext,
+  OAUTH_STATE_COOKIE_NAME,
+  getOAuthRedirectUri,
+  verifySignedOAuthState,
+} from '@/lib/auth/oauth'
 
-function failRedirect(request: NextRequest): NextResponse {
-  const response = NextResponse.redirect(new URL('/login?error=oauth_failed', request.url))
+function failRedirect(request: NextRequest, reason?: string): NextResponse {
+  const url = new URL('/login?error=oauth_failed', request.url)
+  if (reason) {
+    url.searchParams.set('reason', reason)
+  }
+  const response = NextResponse.redirect(url)
   response.cookies.set(OAUTH_STATE_COOKIE_NAME, '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
@@ -22,34 +31,46 @@ export async function GET(request: NextRequest) {
     const state = searchParams.get('state')
     const errorParam = searchParams.get('error')
 
-    if (errorParam || !code || !state) {
-      if (errorParam) {
-        console.error('[Google OAuth Callback] Error returned from provider:', errorParam)
-      }
-      return failRedirect(request)
+    if (errorParam) {
+      console.error('[Google OAuth Callback] Error returned from provider:', errorParam)
+      return failRedirect(request, `Provider error: ${errorParam}`)
     }
 
-    // 1. Verify state against the cookie
+    if (!code || !state) {
+      console.error('[Google OAuth Callback] Missing code or state param')
+      return failRedirect(request, 'Missing authorization code or state from provider')
+    }
+
+    // 1. Verify state against cookie or signed token payload
     const stateCookie = request.cookies.get(OAUTH_STATE_COOKIE_NAME)?.value
-    let savedState: string | null = null
+    let savedStateId: string | null = null
     let savedNext: string | null = null
 
     if (stateCookie) {
       try {
         const parsed = JSON.parse(stateCookie)
-        savedState = parsed.state
+        savedStateId = parsed.state
         savedNext = parsed.next
       } catch {
         // Invalid state cookie JSON
       }
     }
 
-    if (!savedState || savedState !== state) {
-      console.error('[Google OAuth Callback] State mismatch or missing cookie')
-      return failRedirect(request)
+    const verifiedSigned = verifySignedOAuthState(state)
+    const isCookieMatch =
+      savedStateId &&
+      (savedStateId === state || (verifiedSigned && savedStateId === verifiedSigned.rawStateId))
+    const isStateValid = isCookieMatch || !!verifiedSigned
+
+    if (!isStateValid) {
+      console.error('[Google OAuth Callback] State mismatch or missing cookie', {
+        hasStateCookie: !!stateCookie,
+        hasVerifiedSigned: !!verifiedSigned,
+      })
+      return failRedirect(request, 'Session verification failed. Please try again.')
     }
 
-    const safeNext = sanitizeNext(savedNext)
+    const safeNext = sanitizeNext(savedNext || verifiedSigned?.next)
 
     // 2. Exchange code for access token
     const googleClientId = process.env.GOOGLE_CLIENT_ID
@@ -57,10 +78,10 @@ export async function GET(request: NextRequest) {
 
     if (!googleClientId || !googleClientSecret) {
       console.error('[Google OAuth Callback] Missing Google client credentials')
-      return failRedirect(request)
+      return failRedirect(request, 'Google client credentials not configured on server')
     }
 
-    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/auth/oauth/google/callback`
+    const redirectUri = getOAuthRedirectUri(request)
 
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -77,8 +98,20 @@ export async function GET(request: NextRequest) {
     })
 
     if (!tokenResponse.ok) {
-      console.error('[Google OAuth Callback] Token exchange failed:', await tokenResponse.text())
-      return failRedirect(request)
+      const errText = await tokenResponse.text()
+      console.error('[Google OAuth Callback] Token exchange failed:', errText)
+      let detail = 'Token exchange failed'
+      try {
+        const errJson = JSON.parse(errText)
+        if (errJson.error_description) {
+          detail = `${errJson.error}: ${errJson.error_description}`
+        } else if (errJson.error) {
+          detail = errJson.error
+        }
+      } catch {
+        if (errText.length < 80) detail = errText
+      }
+      return failRedirect(request, detail)
     }
 
     const tokenData = await tokenResponse.json()
@@ -86,7 +119,7 @@ export async function GET(request: NextRequest) {
 
     if (!accessToken) {
       console.error('[Google OAuth Callback] No access token in response')
-      return failRedirect(request)
+      return failRedirect(request, 'No access token received from Google')
     }
 
     // 3. Retrieve user profile info from Google
@@ -97,15 +130,16 @@ export async function GET(request: NextRequest) {
     })
 
     if (!userinfoResponse.ok) {
-      console.error('[Google OAuth Callback] Userinfo request failed:', await userinfoResponse.text())
-      return failRedirect(request)
+      const errText = await userinfoResponse.text()
+      console.error('[Google OAuth Callback] Userinfo request failed:', errText)
+      return failRedirect(request, 'Failed to fetch user profile from Google')
     }
 
     const userInfo = await userinfoResponse.json()
 
     if (!userInfo.email || userInfo.email_verified !== true) {
       console.error('[Google OAuth Callback] Email missing or unverified:', userInfo?.email)
-      return failRedirect(request)
+      return failRedirect(request, 'Google email address is missing or unverified')
     }
 
     const cleanEmail = userInfo.email.trim().toLowerCase()
@@ -129,11 +163,14 @@ export async function GET(request: NextRequest) {
       userId = insertRes.rows[0].id
     } else {
       userId = userRes.rows[0].id
-      // Preserves existing password_hash and metadata
     }
 
-    // Ensure public.users row exists
-    const publicRes = await query(`SELECT id FROM public.users WHERE id = $1 LIMIT 1`, [userId])
+    // Ensure public.users row exists and matches
+    const publicRes = await query(
+      `SELECT id, email FROM public.users WHERE id = $1 OR LOWER(email) = $2 LIMIT 1`,
+      [userId, cleanEmail]
+    )
+
     if (publicRes.rowCount === 0) {
       await query(
         `INSERT INTO public.users (id, name, email, user_type, auth_provider, has_password)
@@ -141,6 +178,11 @@ export async function GET(request: NextRequest) {
          ON CONFLICT (id) DO NOTHING`,
         [userId, name, cleanEmail]
       )
+    } else if (publicRes.rows[0].id !== userId) {
+      await query(`UPDATE public.users SET id = $1, auth_provider = 'google' WHERE LOWER(email) = $2`, [
+        userId,
+        cleanEmail,
+      ])
     }
 
     // 5. Create session token and set cookie
@@ -167,6 +209,7 @@ export async function GET(request: NextRequest) {
     return response
   } catch (error) {
     console.error('[Google OAuth Callback Fatal Error]', error)
-    return failRedirect(request)
+    const msg = error instanceof Error ? error.message : 'Internal server error'
+    return failRedirect(request, `Database or server error: ${msg}`)
   }
 }

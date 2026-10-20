@@ -22,7 +22,12 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(() => {
     const errorParam = searchParams.get('error')
-    if (errorParam === 'oauth_failed') return 'Google sign-in was unsuccessful. Please try again.'
+    const reasonParam = searchParams.get('reason')
+    if (errorParam === 'oauth_failed') {
+      return reasonParam
+        ? `Google sign-in was unsuccessful: ${reasonParam}`
+        : 'Google sign-in was unsuccessful. Please try again.'
+    }
     if (errorParam === 'oauth_not_configured') return 'Google sign-in is not configured.'
     return errorParam || null
   })
