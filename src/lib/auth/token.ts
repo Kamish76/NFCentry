@@ -8,7 +8,7 @@ export interface SessionUser {
   name?: string
 }
 
-function getSecretKey(): string {
+export function getSecretKey(): string {
   return (
     process.env.NEON_AUTH_COOKIE_SECRET ||
     process.env.DATABASE_URL ||
