@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "db:migrate": "node scripts/migrate.js",
-    "db:test": "node scripts/test-db-functions.js"
+    "vercel-build": "node scripts/migrate.js && next build",
+    "db:test": "node scripts/test-db-functions.js",
+    "test:oauth": "node scripts/test-oauth-sanitizer.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1152.0",

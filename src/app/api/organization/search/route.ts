@@ -53,7 +53,7 @@ export const GET = withAuth(async ({ request, user }) => {
       .select('organization_id')
       .eq('user_id', user.id)
 
-    const userOrgIds = memberships?.map(m => m.organization_id) || []
+    const userOrgIds = (memberships as any[])?.map((m: any) => m.organization_id) || []
 
     // Get user's pending join requests
     const { data: pendingRequests } = await supabase
@@ -62,7 +62,7 @@ export const GET = withAuth(async ({ request, user }) => {
       .eq('user_id', user.id)
       .eq('status', 'pending')
 
-    const pendingOrgIds = pendingRequests?.map(r => r.organization_id) || []
+    const pendingOrgIds = (pendingRequests as any[])?.map((r: any) => r.organization_id) || []
 
     // Build the base query
     let queryBuilder = supabase
@@ -111,9 +111,8 @@ export const GET = withAuth(async ({ request, user }) => {
     }
 
     // Process results: count members and apply member filters
-    let results = organizations?.map(org => {
+    let results = ((organizations || []) as any[]).map((org: any) => {
       // Count members from the relation
-      // When using (count) in select, Supabase returns [{count: N}]
       const memberCount = Array.isArray(org.organization_members) && org.organization_members.length > 0
         ? (org.organization_members[0] as { count: number })?.count ?? 0
         : 0
@@ -125,18 +124,18 @@ export const GET = withAuth(async ({ request, user }) => {
         ...orgData,
         member_count: memberCount,
       }
-    }) || []
+    })
 
     // Apply member count filters
     if (minMembers !== undefined) {
-      results = results.filter(org => org.member_count >= minMembers)
+      results = results.filter((org: any) => org.member_count >= minMembers)
     }
     if (maxMembers !== undefined) {
-      results = results.filter(org => org.member_count <= maxMembers)
+      results = results.filter((org: any) => org.member_count <= maxMembers)
     }
 
     // Add membership status and pending request status to results
-    const enrichedResults = results.map(org => ({
+    const enrichedResults = results.map((org: any) => ({
       ...org,
       is_member: userOrgIds.includes(org.id),
       has_pending_request: pendingOrgIds.includes(org.id),

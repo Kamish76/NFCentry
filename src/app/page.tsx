@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/lib/server'
 import Link from 'next/link'
 import { Calendar, Radio, BarChart3 } from 'lucide-react'
 

@@ -240,7 +240,7 @@ export class EventService {
       return []
     }
 
-    const organizationIds = memberships.map((m) => m.organization_id)
+    const organizationIds = (memberships as any[]).map((m: any) => m.organization_id)
 
     let query = supabase
       .from('events')
@@ -279,7 +279,7 @@ export class EventService {
     }
 
     // Transform the data to match our type
-    return data.map((event) => {
+    return (data as any[]).map((event: any) => {
       const organization = Array.isArray(event.organizations)
         ? event.organizations[0]
         : event.organizations
@@ -482,7 +482,7 @@ export class EventService {
       if (!memberships || memberships.length === 0) {
         return { events: [], total: 0 }
       }
-      organizationIds = memberships.map((m) => m.organization_id)
+      organizationIds = (memberships as any[]).map((m: any) => m.organization_id)
     }
 
     // Get total count
@@ -504,7 +504,7 @@ export class EventService {
     }
 
     // Transform view data to match EventWithOrganization type
-    const events = data.map((event) => ({
+    const events = (data as any[]).map((event: any) => ({
       id: event.id,
       event_name: event.event_name,
       date: event.date,
@@ -547,7 +547,7 @@ export class EventService {
       return { events: [], total: 0 }
     }
 
-    const organizationIds = memberships.map((m) => m.organization_id)
+    const organizationIds = (memberships as any[]).map((m: any) => m.organization_id)
 
     // Get total count
     const { count } = await supabase
@@ -568,7 +568,7 @@ export class EventService {
     }
 
     // Transform view data to match EventWithOrganization type
-    const events = data.map((event) => ({
+    const events = (data as any[]).map((event: any) => ({
       id: event.id,
       event_name: event.event_name,
       date: event.date,
@@ -629,7 +629,7 @@ export class EventService {
       if (!memberships || memberships.length === 0) {
         return { events: [], total: 0 }
       }
-      organizationIds = memberships.map((m) => m.organization_id)
+      organizationIds = (memberships as any[]).map((m: any) => m.organization_id)
     }
     const now = new Date().toISOString()
     const startOfToday = new Date()
@@ -665,7 +665,7 @@ export class EventService {
     }
 
     // Transform the data to match EventWithOrganization type
-    const events = data.map((event) => {
+    const events = (data as any[]).map((event: any) => {
       const organization = Array.isArray(event.organizations)
         ? event.organizations[0]
         : event.organizations

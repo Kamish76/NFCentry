@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { User as SupabaseAuthUser } from '@supabase/supabase-js'
-
 import { createClient } from '@/lib/server'
+
+export type AuthUser = {
+  id: string
+  email?: string
+  user_metadata?: {
+    name?: string | null
+    user_type?: string
+    provider?: string
+  }
+}
 
 type AuthenticatedContext = {
   request: NextRequest
-  user: SupabaseAuthUser
+  user: AuthUser
 }
 
 type AuthenticatedHandler<TParams = unknown> = (
@@ -18,31 +26,18 @@ export function withAuth<TParams = unknown>(
 ) {
   return async (request: NextRequest, params: TParams): Promise<Response> => {
     try {
-      const supabase = await createClient()
+      const client = await createClient()
       const authHeader = request.headers.get('authorization')
       const bearerToken = authHeader?.startsWith('Bearer ')
         ? authHeader.slice('Bearer '.length).trim()
-        : null
-
-      console.log('[api-auth] request', {
-        path: request.nextUrl.pathname,
-        hasAuthHeader: Boolean(authHeader),
-        hasBearerToken: Boolean(bearerToken),
-      })
+        : undefined
 
       const {
         data: { user },
         error: authError,
-      } = bearerToken
-        ? await supabase.auth.getUser(bearerToken)
-        : await supabase.auth.getUser()
+      } = await client.auth.getUser(bearerToken)
 
       if (authError || !user) {
-        console.warn('[api-auth] unauthorized', {
-          path: request.nextUrl.pathname,
-          hasBearerToken: Boolean(bearerToken),
-          error: authError?.message || 'No user',
-        })
         return NextResponse.json(
           {
             error: 'Unauthorized',
@@ -51,9 +46,9 @@ export function withAuth<TParams = unknown>(
         )
       }
 
-      return await handler({ request, user }, params)
+      return await handler({ request, user: user as AuthUser }, params)
     } catch (error) {
-      console.error('Error in auth middleware:', error)
+      console.error('[Neon Auth Middleware Error]:', error)
       return NextResponse.json(
         {
           error: 'Internal server error',

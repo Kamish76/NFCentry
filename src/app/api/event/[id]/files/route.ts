@@ -310,8 +310,8 @@ export const DELETE = withAuth(
     const isEventCreator = event.created_by === userProfile.id
 
     // Verify user can delete each file
-    const deletableFiles = filesToDelete.filter(
-      (file) =>
+    const deletableFiles = (filesToDelete as any[]).filter(
+      (file: any) =>
         file.uploaded_by === userProfile.id || isEventCreator || isOrgAdmin
     )
 
@@ -336,7 +336,7 @@ export const DELETE = withAuth(
         deleteErrors.push({
           fileId: file.id,
           fileName: file.file_name,
-          error: storageError.message,
+          error: (storageError as any)?.message || 'Storage delete error',
         })
         continue
       }

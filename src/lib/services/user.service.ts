@@ -376,7 +376,7 @@ export class UserService {
 
     const { data, error } = await query.single()
 
-    if (error && error.code !== 'PGRST116') {
+    if (error && (error as any).code !== 'PGRST116') {
       // PGRST116 is "not found" error, which means tag is available
       console.error('Error checking NFC tag availability:', error)
       return false

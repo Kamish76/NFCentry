@@ -88,7 +88,7 @@ export const GET = withAuth(
     }
 
     // Normalize attendance data
-    const attendees: AttendanceWithUser[] = (attendanceData || []).map((record) => ({
+    const attendees: AttendanceWithUser[] = (attendanceData || []).map((record: any) => ({
       ...record,
       user: Array.isArray(record.user) ? record.user[0] : record.user,
       is_member: record.is_member ?? true,

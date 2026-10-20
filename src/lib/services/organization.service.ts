@@ -1,5 +1,4 @@
 import { createClient } from '@/lib/server'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import type {
   Organization,
   OrganizationMember,
@@ -18,7 +17,7 @@ export class OrganizationService {
    * Automatically adds the creator as Owner
    */
   static async createOrganization(
-    supabase: SupabaseClient,
+    supabase: any,
     userId: string,
     input: CreateOrganizationInput
   ): Promise<{ data: Organization | null; error: string | null }> {
@@ -136,7 +135,7 @@ export class OrganizationService {
    * Get all organizations where user is a member
    */
   static async getUserOrganizations(
-    supabase: SupabaseClient,
+    supabase: any,
     userId: string
   ): Promise<OrganizationWithRole[]> {
 
@@ -156,7 +155,7 @@ export class OrganizationService {
 
     if (memberships.length === 0) return []
 
-    const orgIds = memberships.map((m) => m.organization_id)
+    const orgIds = (memberships as any[]).map((m: any) => m.organization_id)
 
     const { data: organizations, error: orgError } = await supabase
       .from('organizations')
@@ -169,8 +168,8 @@ export class OrganizationService {
     }
 
     // Combine org data with user's role
-    return organizations.map((org) => {
-      const membership = memberships.find((m) => m.organization_id === org.id)
+    return (organizations as any[]).map((org: any) => {
+      const membership = (memberships as any[]).find((m: any) => m.organization_id === org.id)
       return {
         ...org,
         user_role: membership!.role,
@@ -292,7 +291,7 @@ export class OrganizationService {
     organizationId: string
   ): Promise<OrganizationMemberWithUser[]> {
     const { createServiceRoleClient } = await import('@/lib/server')
-    const supabase = createServiceRoleClient()
+    const supabase = await createServiceRoleClient()
 
     const { data, error } = await supabase
       .from('organization_members')
