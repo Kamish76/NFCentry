@@ -17,12 +17,17 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 
 export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRef<'div'>) {
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(() => {
+    const errorParam = searchParams.get('error')
+    if (errorParam === 'oauth_failed') return 'Google sign-in was unsuccessful. Please try again.'
+    if (errorParam === 'oauth_not_configured') return 'Google sign-in is not configured.'
+    return errorParam || null
+  })
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
-  const searchParams = useSearchParams()
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()

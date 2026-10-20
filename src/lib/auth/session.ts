@@ -1,6 +1,7 @@
 import crypto from 'crypto'
 
 export * from './token'
+export * from './oauth'
 
 export function hashPassword(password: string): string {
   const salt = crypto.randomBytes(16).toString('hex')

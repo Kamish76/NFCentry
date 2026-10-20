@@ -79,7 +79,18 @@ export function createClient() {
 
       async signInWithOAuth({ provider = 'google', options }: { provider?: string; options?: { redirectTo?: string; [key: string]: any } }) {
         try {
-          const next = options?.redirectTo ? encodeURIComponent(options.redirectTo) : '/dashboard'
+          let target = options?.redirectTo || '/dashboard'
+          if (target.startsWith('http://') || target.startsWith('https://')) {
+            try {
+              const url = new URL(target)
+              if (typeof window !== 'undefined' && url.origin === window.location.origin) {
+                target = url.pathname + url.search + url.hash
+              }
+            } catch {
+              // fallback to target
+            }
+          }
+          const next = encodeURIComponent(target)
           window.location.href = `/api/auth/oauth/${provider}?next=${next}`
           return { data: null, error: null }
         } catch (err: any) {
