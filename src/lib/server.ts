@@ -1,2 +1,1 @@
-export { createClient } from './supabase/server'
-export { createServiceRoleClient } from './supabase/admin'
+export { createClient, createServiceRoleClient } from './neon/server'

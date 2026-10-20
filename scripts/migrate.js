@@ -22,22 +22,66 @@ async function runMigration() {
     idleTimeoutMillis: 10000,
   });
 
-  pool.on('error', (err) => {
-    // Suppress background connection drops after completion
-  });
+  pool.on('error', () => {});
 
   const client = await pool.connect();
 
   try {
-    const migrationPath = path.resolve(process.cwd(), 'supabase/migrations/00000000000000_full_schema.sql');
-    console.log(`Reading migration script from: ${migrationPath}`);
-    const sql = fs.readFileSync(migrationPath, 'utf8');
+    // 1. Ensure migrations tracking table exists
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS public._migrations (
+        id SERIAL PRIMARY KEY,
+        name TEXT UNIQUE NOT NULL,
+        applied_at TIMESTAMPTZ DEFAULT NOW()
+      );
+    `);
 
-    console.log('Executing migration script in transaction...');
-    await client.query('BEGIN;');
-    await client.query(sql);
-    await client.query('COMMIT;');
-    console.log('✓ Migration applied successfully!');
+    // 2. Fetch already applied migrations
+    const appliedRes = await client.query('SELECT name FROM public._migrations');
+    const applied = new Set(appliedRes.rows.map(r => r.name));
+
+    // 3. Read all .sql files in migrations/ sorted alphabetically
+    const migrationsDir = path.resolve(process.cwd(), 'migrations');
+    if (!fs.existsSync(migrationsDir)) {
+      console.log('No migrations directory found.');
+      return;
+    }
+
+    const files = fs
+      .readdirSync(migrationsDir)
+      .filter(f => f.endsWith('.sql'))
+      .sort();
+
+    let appliedCount = 0;
+
+    for (const file of files) {
+      if (applied.has(file)) {
+        console.log(`- Skipping already applied migration: ${file}`);
+        continue;
+      }
+
+      console.log(`Applying migration: ${file}...`);
+      const filePath = path.join(migrationsDir, file);
+      const sql = fs.readFileSync(filePath, 'utf8');
+
+      try {
+        await client.query('BEGIN;');
+        await client.query(sql);
+        await client.query('INSERT INTO public._migrations (name) VALUES ($1);', [file]);
+        await client.query('COMMIT;');
+        console.log(`✓ Applied: ${file}`);
+        appliedCount++;
+      } catch (err) {
+        await client.query('ROLLBACK;').catch(() => {});
+        throw new Error(`Failed to apply migration ${file}: ${err.message}`);
+      }
+    }
+
+    if (appliedCount === 0) {
+      console.log('✓ Database schema is up to date. No pending migrations.');
+    } else {
+      console.log(`✓ Successfully applied ${appliedCount} migration file(s).`);
+    }
 
     // Release client back to pool before verification queries
     client.release();
@@ -131,7 +175,6 @@ async function runMigration() {
 
     console.log('\nAll core database objects successfully verified!');
   } catch (err) {
-    await client.query('ROLLBACK;').catch(() => {});
     client.release();
     console.error('Migration failed:', err);
     process.exit(1);

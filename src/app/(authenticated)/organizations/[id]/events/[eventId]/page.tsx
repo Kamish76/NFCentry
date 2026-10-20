@@ -314,7 +314,7 @@ export default async function EventDetailPage({
               {canViewFiles ? (
                 <>
                   <div className="space-y-3">
-                    {files.map((file) => {
+                    {(files as any[]).map((file: any) => {
                       const isImage = file.file_type === 'image'
                       const fileExtension = file.mime_type.split('/')[1]?.toUpperCase() || 'FILE'
                       const fileSizeFormatted = 

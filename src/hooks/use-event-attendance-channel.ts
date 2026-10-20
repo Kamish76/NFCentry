@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import type { RealtimeChannel } from '@supabase/supabase-js'
+import { createClient } from '@/lib/client'
 
 export type AttendanceRealtimeEvent = {
   eventType: 'INSERT' | 'UPDATE' | 'DELETE' | string
@@ -16,7 +15,7 @@ type EventCallback = (payload: AttendanceRealtimeEvent) => void
 type StatusCallback = (status: RealtimeConnectionStatus) => void
 
 interface ChannelEntry {
-  channel: RealtimeChannel
+  channel: any
   eventSubscribers: Set<EventCallback>
   statusSubscribers: Set<StatusCallback>
   currentStatus: RealtimeConnectionStatus
@@ -29,8 +28,7 @@ const activeEventChannels = new Map<string, ChannelEntry>()
 /**
  * Hook to subscribe to real-time event attendance updates.
  * Multiplexes multiple components (e.g. AttendanceStats and AttendanceList)
- * onto a SINGLE Supabase Realtime channel per event, eliminating duplicate
- * WebSocket connections and redundant network frames (Fixes Defect #12).
+ * onto a SINGLE channel per event, eliminating duplicate connections.
  */
 export function useEventAttendanceChannel(
   eventId: string,
@@ -46,7 +44,7 @@ export function useEventAttendanceChannel(
   const initChannel = useCallback(() => {
     if (!eventId) return
 
-    const supabase = createClient()
+    const client = createClient()
     const eventSub: EventCallback = (payload) => {
       eventCallbackRef.current?.(payload)
     }
@@ -59,14 +57,14 @@ export function useEventAttendanceChannel(
 
     if (!entry) {
       entry = {
-        channel: null as unknown as RealtimeChannel,
+        channel: null,
         eventSubscribers: new Set([eventSub]),
         statusSubscribers: new Set([statusSub]),
-        currentStatus: 'disconnected',
+        currentStatus: 'connected',
       }
       activeEventChannels.set(eventId, entry)
 
-      const channel = supabase
+      const channel = client
         .channel(`event_attendance:${eventId}`)
         .on(
           'postgres_changes',
@@ -76,13 +74,13 @@ export function useEventAttendanceChannel(
             table: 'event_attendance',
             filter: `event_id=eq.${eventId}`,
           },
-          (payload) => {
+          (payload: any) => {
             const currentEntry = activeEventChannels.get(eventId)
             if (currentEntry) {
               currentEntry.eventSubscribers.forEach((cb) => {
                 try {
                   cb({
-                    eventType: payload.eventType,
+                    eventType: payload.eventType || 'INSERT',
                     new: payload.new || {},
                     old: payload.old || {},
                   })
@@ -93,8 +91,8 @@ export function useEventAttendanceChannel(
             }
           }
         )
-        .subscribe((subscriptionStatus) => {
-          let nextStatus: RealtimeConnectionStatus = 'disconnected'
+        .subscribe((subscriptionStatus: string) => {
+          let nextStatus: RealtimeConnectionStatus = 'connected'
           if (subscriptionStatus === 'SUBSCRIBED') {
             nextStatus = 'connected'
           } else if (
@@ -120,10 +118,10 @@ export function useEventAttendanceChannel(
         })
 
       entry.channel = channel
+      statusSub('connected')
     } else {
       entry.eventSubscribers.add(eventSub)
       entry.statusSubscribers.add(statusSub)
-      // Notify new subscriber of current status immediately
       statusSub(entry.currentStatus)
     }
 
@@ -133,7 +131,7 @@ export function useEventAttendanceChannel(
         currentEntry.eventSubscribers.delete(eventSub)
         currentEntry.statusSubscribers.delete(statusSub)
         if (currentEntry.eventSubscribers.size === 0) {
-          supabase.removeChannel(currentEntry.channel)
+          client.removeChannel(currentEntry.channel)
           activeEventChannels.delete(eventId)
         }
       }
@@ -141,18 +139,11 @@ export function useEventAttendanceChannel(
   }, [eventId])
 
   useEffect(() => {
-    return initChannel()
+    const cleanup = initChannel()
+    return () => {
+      cleanup?.()
+    }
   }, [initChannel])
 
-  const reconnect = useCallback(() => {
-    const supabase = createClient()
-    const entry = activeEventChannels.get(eventId)
-    if (entry) {
-      supabase.removeChannel(entry.channel)
-      activeEventChannels.delete(eventId)
-    }
-    initChannel()
-  }, [eventId, initChannel])
-
-  return { status, reconnect }
+  return { status, reconnect: initChannel }
 }

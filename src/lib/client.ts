@@ -1,1 +1,1 @@
-export { createClient } from './supabase/client'
+export { createClient } from './neon/client'

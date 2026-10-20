@@ -5,10 +5,10 @@ export type AuthProvider = 'email' | 'google' | 'github' | 'azure' | 'facebook'
 
 /**
  * User record from database
- * Note: id field is the Supabase auth.users.id (no separate ID needed)
+ * Note: id field is the Neon auth.users.id (no separate ID needed)
  */
 export interface User {
-  id: string // This is the Supabase auth user ID (formerly auth_id)
+  id: string // This is the Neon auth user ID
   name: string
   email: string
   user_type: UserType

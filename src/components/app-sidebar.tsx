@@ -15,7 +15,7 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 import { usePathname, useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/lib/client'
 import { useTheme } from 'next-themes'
 import { useAuthStore } from '@/store/auth-store'
 import { useEffect, useState } from 'react'

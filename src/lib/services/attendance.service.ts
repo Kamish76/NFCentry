@@ -144,7 +144,7 @@ export class AttendanceService {
     const summary = await this.getEventAttendanceSummary(eventId);
 
     // Transform to AttendanceWithUser format
-    const attendanceWithUsers: AttendanceWithUser[] = (attendees || []).map(record => ({
+    const attendanceWithUsers: AttendanceWithUser[] = ((attendees || []) as any[]).map((record: any) => ({
       id: record.id,
       event_id: record.event_id,
       user_id: record.user_id,
@@ -340,7 +340,7 @@ export class AttendanceService {
     if (error) {
       console.error('Error deleting attendance:', error);
       
-      if (error.code === 'PGRST301') {
+      if ((error as any).code === 'PGRST301') {
         return {
           success: false,
           error: 'You do not have permission to delete this attendance record'
@@ -381,7 +381,7 @@ export class AttendanceService {
     if (error) {
       console.error('Error updating attendance:', error);
       
-      if (error.code === 'PGRST301') {
+      if ((error as any).code === 'PGRST301') {
         return {
           success: false,
           error: 'You do not have permission to update this attendance record'
@@ -435,7 +435,7 @@ export class AttendanceService {
     }
 
     const summaryMap = new Map<string, EventAttendanceSummary>();
-    (data || []).forEach(summary => {
+    ((data || []) as any[]).forEach((summary: any) => {
       summaryMap.set(summary.event_id, summary as EventAttendanceSummary);
     });
 

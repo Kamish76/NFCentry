@@ -56,15 +56,15 @@ export const GET = withAuth(async ({ request }) => {
         .eq('organization_id', excludeOrgMembers)
 
       if (members) {
-        const memberIds = new Set(members.map(m => m.user_id))
-        filteredUsers = filteredUsers.map(user => ({
+        const memberIds = new Set((members as any[]).map((m: any) => m.user_id))
+        filteredUsers = (filteredUsers as any[]).map((user: any) => ({
           ...user,
           is_member: memberIds.has(user.id)
         }))
       }
     } else {
       // Add is_member field defaulting to false (unknown without org context)
-      filteredUsers = filteredUsers.map(user => ({
+      filteredUsers = (filteredUsers as any[]).map((user: any) => ({
         ...user,
         is_member: false
       }))

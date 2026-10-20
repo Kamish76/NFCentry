@@ -53,7 +53,7 @@ export const POST = withAuth(async ({ request, user }) => {
     }
 
     // Use service role client for cleanup (bypasses RLS)
-    const serviceSupabase = createServiceRoleClient()
+    const serviceSupabase = await createServiceRoleClient()
 
     // Call the tenant-scoped cleanup function
     const { data: cleanupResult, error: cleanupError } = await serviceSupabase.rpc(
@@ -80,7 +80,7 @@ export const POST = withAuth(async ({ request, user }) => {
         .remove(storagePaths)
 
       if (deleteError) {
-        storageErrors.push(deleteError.message)
+        storageErrors.push((deleteError as any).message)
       } else {
         storageDeletedCount = deleteData?.length || 0
       }
@@ -163,8 +163,8 @@ export const GET = withAuth(async ({ user }) => {
     }
 
     // Calculate total size
-    const totalSizeBytes = eligibleFiles?.reduce(
-      (sum, file) => sum + (file.file_size_bytes || 0),
+    const totalSizeBytes = ((eligibleFiles || []) as any[]).reduce(
+      (sum: number, file: any) => sum + (file.file_size_bytes || 0),
       0
     ) || 0
 
